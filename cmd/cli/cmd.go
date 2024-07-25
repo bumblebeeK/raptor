@@ -15,71 +15,75 @@ package main
 
 import (
 	"fmt"
-	"github.com/easystack/raptor/pkg/storage/bolt"
-	"github.com/easystack/raptor/pkg/types"
-	"github.com/spf13/cobra"
 	"os"
 	"reflect"
 	"text/tabwriter"
+
+	"github.com/spf13/cobra"
 )
 
-var resource, name, subnetId string
+var resource, subnetId, pool, namespace string
 
-var engine *bolt.BoltEngine
+const (
+	NetworkCardType = "networkCard"
+	PodRecord       = "podRecord"
+	VpcIP           = "vpcIP"
+)
 
 var cliCmd = &cobra.Command{
-	Use:   "raptor-cli",
+	Use:   "raptor-cli -r <resource>",
 	Short: "raptor-cli is a command line tool for vpc resources.",
 	Long:  `raptor-cli is a command line tool for vpc resources`,
 
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
 
 		if resource == "" {
 			cmd.Help()
 			os.Exit(1)
 		}
-
-		// This function will be executed when no subcommands are provided
-		// Check if the file exists
-		if _, err := os.Stat(types.BoltDBPath); os.IsNotExist(err) {
-			fmt.Println("database file does not exist.")
-			return
-		}
-
-		engine, err = bolt.NewEngine(types.BoltDBPath)
-
-		defer engine.Close()
-		if err != nil {
-			fmt.Printf("Failed to open db file, error: %s.\n", err)
-			return
-		}
 		var data any
 		switch resource {
-		case "networkCard":
-			data, err = getNetworkCardInfo(name)
+		case NetworkCardType:
+			data, err = getNetworkCardInfo()
 			if err != nil {
 				fmt.Println("Failed to get network card info")
-				return
+				return err
 			}
-		case "podRecord":
-			data, err = getPodRecordInfo(name)
+		case PodRecord:
+			data, err = getPodRecordInfo(subnetId, pool, namespace)
 			if err != nil {
 				fmt.Println("Failed to get network card info")
-				return
+				return err
 			}
-		case "vpcIP":
-			data, err = getVPCIPInfo(name, subnetId)
-			fmt.Println("not support")
+		case VpcIP:
+			data, err = getVPCIPInfo(subnetId, pool)
+			if err != nil {
+				fmt.Println("Failed to get network card info")
+				return err
+			}
+		default:
+			errLog := fmt.Sprintf("resource kind [%s] not in [%s | %s | %s]", resource, NetworkCardType, PodRecord, VpcIP)
+			fmt.Println("Error: ", errLog)
+			return err
 		}
 		printStructTable(data)
+		return err
 	},
 }
 
 func Execute() {
-	cliCmd.Flags().StringVarP(&resource, "resource", "r", "", "resource kind to get")
-	cliCmd.Flags().StringVarP(&name, "name", "n", "", "resource to get")
-	cliCmd.Flags().StringVarP(&name, "subnet-id", "s", "", "resource to get in subnet")
+	resourceUsage := fmt.Sprintf("resource kind to get for: [%s | %s | %s]", NetworkCardType, PodRecord, VpcIP)
+	cliCmd.Flags().StringVarP(&resource, "resource", "r", "", resourceUsage)
+
+	subnetIdUsage := fmt.Sprintf("get the resource kind: [%s | %s] by specified subnetId", PodRecord, VpcIP)
+	cliCmd.Flags().StringVarP(&subnetId, "subnet-id", "s", "", subnetIdUsage)
+
+	poolUsage := fmt.Sprintf("get the resource kind: [%s | %s] by specified pool", PodRecord, VpcIP)
+	cliCmd.Flags().StringVarP(&pool, "pool", "p", "", poolUsage)
+
+	namespaceUsage := fmt.Sprintf("get the resource kind: [%s] by specified namespace", PodRecord)
+	cliCmd.Flags().StringVarP(&namespace, "namespace", "n", "", namespaceUsage)
 
 	if err := cliCmd.Execute(); err != nil {
 		fmt.Println(err)
@@ -99,31 +103,42 @@ func printStructTable(data any) {
 	}
 
 	elemType := v.Index(0).Type()
-	numFields := elemType.NumField()
 
-	w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', tabwriter.AlignRight|tabwriter.Debug)
+	numFields := elemType.Elem().NumField()
+
+	w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', tabwriter.Debug)
 	defer w.Flush()
 
+	fmt.Fprintln(w) // 新行
+
 	// 打印表头
-	for i := 0; i < numFields; i++ {
-		field := elemType.Field(i)
+	for i := 3; i < numFields; i++ {
+		field := elemType.Elem().Field(i)
 		fmt.Fprintf(w, "%s\t", field.Name)
 	}
 	fmt.Fprintln(w) // 新行
 
 	// 打印分隔线
-	for i := 0; i < numFields; i++ {
-		fmt.Fprintf(w, "----\t")
+	for i := 3; i < numFields; i++ {
+		fmt.Fprintf(w, "----------\t")
 	}
 	fmt.Fprintln(w) // 新行
 
 	// 打印数据行
 	for i := 0; i < v.Len(); i++ {
 		elem := v.Index(i)
-		for j := 0; j < numFields; j++ {
+		for j := 3; j < numFields; j++ {
+			if elem.Kind() == reflect.Ptr {
+				elem = elem.Elem()
+			}
 			field := elem.Field(j)
-			fmt.Fprintf(w, "%v\t", field.Interface())
+			if field.CanInterface() {
+				fmt.Fprintf(w, "%v\t", field.Interface())
+			} else {
+				fmt.Fprintf(w, "%v\t", "")
+			}
 		}
 		fmt.Fprintln(w) // 新行
 	}
+	fmt.Fprintln(w) // 新行
 }

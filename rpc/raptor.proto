@@ -49,7 +49,7 @@ message AcquireInstanceInfoReply {
 message AllocateIPResourceRequest {
   string Pool = 2;
   string TrunkId = 3;
-  string NetworkCardId = 4;
+  string NetworkCardPortId = 4;
   string NetworkId = 5;
   string SubnetId = 6;
   string NetworkCardMacAddress = 7;
@@ -62,7 +62,7 @@ message AllocateIPResourceReply {
 
 message ReleaseIPResourceRequest {
    string ResourceId = 1;
-   string NetworkCardId = 2;
+   string NetworkCardPortId = 2;
    string TrunkId = 3;
    uint32 Vid = 4;
    string MacAddress = 5;
@@ -84,7 +84,7 @@ message AllocateNetworkCardReply {
 }
 
 message ReleaseNetworkCardRequest {
-  string NetworkCardId = 1;
+  string NetworkCardPortId = 1;
 }
 
 message ReleaseNetworkCardReply {
@@ -145,14 +145,37 @@ message IPPool {
 }
 
 message VPCIP {
-  IPSet IPSet = 1;
-  string PortID = 2;
+  string PortId = 1;
+  IPSet IPSet = 2;
   string MACAddress = 3;
   int32  Vid = 4;
-  string TrunkID = 5;
-  string NetworkCardId = 6;
+  string TrunkId = 5;
+  string NetworkCardPortId = 6;
   string SubnetId = 7;
   string Pool = 8;
 }
 
+message PodRecord {
+  string Name = 1;
+  IPSet IPSet = 2;
+  string MACAddress = 3;
+  int32  Vid = 4;
+  string Pool = 5;
+  string TrunkId = 6;
+  string PortId = 7;
+  string SubnetId = 8;
+  string Namespace = 9;
+  string NetworkCardPortId = 10;
+  bool Trunk = 11;
+}
 
+message CliNetworkCard {
+  string NetworkCardPortId = 1;
+  IPSet IPSet = 2;
+  string MACAddress = 3;
+  string  SubnetId = 4;
+  string NetworkId = 5;
+  int32 IPLimit = 6;
+  string TrunkId = 7;
+  repeated string SecurityGroups = 8;
+}

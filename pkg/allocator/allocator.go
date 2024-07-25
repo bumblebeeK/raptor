@@ -134,7 +134,7 @@ func (c *CoordinatorAllocator) ApplyForVPCIPResource(card types.NetworkCard, sub
 		SubnetId:              subnetId,
 		Pool:                  pool,
 		TrunkId:               card.GetTrunkId(),
-		NetworkCardId:         card.GetResourceId(),
+		NetworkCardPortId:     card.GetResourceId(),
 		NetworkCardMacAddress: card.GetMacAddress(),
 		ResourceId:            resourceId,
 	}
@@ -153,9 +153,9 @@ func (c *CoordinatorAllocator) ApplyForVPCIPResource(card types.NetworkCard, sub
 // ReleaseVPCIPResource releases a VPC IP resource.
 func (c *CoordinatorAllocator) ReleaseVPCIPResource(resource types.VPCIP, deleteResource bool) error {
 	req := &rpc.ReleaseIPResourceRequest{
-		ResourceId:    resource.GetResourceId(),
-		NetworkCardId: resource.GetNetworkCardId(),
-		TrunkId:       resource.GetTrunkId(),
+		ResourceId:        resource.GetResourceId(),
+		NetworkCardPortId: resource.GetNetworkCardId(),
+		TrunkId:           resource.GetTrunkId(),
 		IPSet: &rpc.IPSet{
 			IPv4: resource.GetIPSet().IPv4.String(),
 			IPv6: resource.GetIPSet().IPv6.String(),
@@ -176,7 +176,7 @@ func (c *CoordinatorAllocator) ReleaseVPCIPResource(resource types.VPCIP, delete
 // ReleaseNetworkCard releases a network card resource.
 func (c *CoordinatorAllocator) ReleaseNetworkCard(networkCardID string) error {
 	req := &rpc.ReleaseNetworkCardRequest{
-		NetworkCardId: networkCardID,
+		NetworkCardPortId: networkCardID,
 	}
 	session, err := c.dial()
 	if err != nil {

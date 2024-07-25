@@ -20,6 +20,7 @@ import (
 	"github.com/containernetworking/cni/pkg/skel"
 	cniTypes "github.com/containernetworking/cni/pkg/types"
 	"github.com/easystack/raptor/pkg/storage"
+	"github.com/easystack/raptor/rpc"
 	"github.com/vishvananda/netlink"
 )
 
@@ -136,4 +137,12 @@ type TeardownConfig struct {
 	ContainerID string
 
 	ContainerIPNet *IPNetSet
+}
+
+type IPs struct {
+	IPSet             *rpc.IPSet
+	Vid               int32
+	MACAddress        string
+	TrunkId           string
+	NetworkCardPortId string
 }

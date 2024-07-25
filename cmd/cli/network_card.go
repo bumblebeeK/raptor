@@ -14,38 +14,22 @@
 package main
 
 import (
-	"encoding/json"
-	"github.com/boltdb/bolt"
-	"github.com/easystack/raptor/pkg/types"
+	"context"
+	"time"
+
+	cmdcommon "github.com/easystack/raptor/cmd/common"
+	"github.com/easystack/raptor/rpc"
 )
 
-var networkCardBucketName = "networkCard"
+func getNetworkCardInfo() ([]*rpc.CliNetworkCard, error) {
+	client, conn, err := cmdcommon.GetRaptorClient(context.Background())
+	if err != nil {
+		return nil, err
+	}
+	defer conn.Close()
+	ctx, cancelFunc := context.WithTimeout(context.Background(), time.Second*10)
+	defer cancelFunc()
+	response, err := client.ListNetworkCards(ctx, &rpc.ListNetworkCardsRequest{})
 
-func getNetworkCardInfo(name string) ([]types.NetworkCardImpl, error) {
-	cards := []types.NetworkCardImpl{}
-
-	err := engine.View(func(tx *bolt.Tx) error {
-
-		if name == "" {
-			bytes := tx.Bucket([]byte(networkCardBucketName)).Get([]byte(name))
-			card := types.NetworkCardImpl{}
-			err := json.Unmarshal(bytes, &card)
-			if err != nil {
-				return err
-			}
-			cards = append(cards, card)
-			return nil
-		}
-
-		return tx.Bucket([]byte(networkCardBucketName)).ForEach(func(_, v []byte) error {
-			card := types.NetworkCardImpl{}
-			err := json.Unmarshal(v, &card)
-			if err != nil {
-				return err
-			}
-			cards = append(cards, card)
-			return nil
-		})
-	})
-	return cards, err
+	return response.CliNetworkCards, err
 }

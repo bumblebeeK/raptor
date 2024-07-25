@@ -15,12 +15,13 @@ package openstack
 
 import (
 	"fmt"
-	"github.com/easystack/raptor/cmd/coordinator/option"
-	"github.com/easystack/raptor/pkg/base"
 	"net/http"
 	"os"
 	"strings"
 	"time"
+
+	"github.com/easystack/raptor/cmd/coordinator/option"
+	"github.com/easystack/raptor/pkg/base"
 
 	"github.com/easystack/raptor/pkg/utils"
 	"github.com/easystack/raptor/rpc"
@@ -228,7 +229,7 @@ func (c *Client) parseNetworkCard(port *ports.Port, ip2pid map[string]string,
 						IPSet: &rpc.IPSet{
 							IPv4: info.ip,
 						},
-						PortID:     subPort.PortID,
+						PortId:     subPort.PortID,
 						Vid:        int32(subPort.SegmentationID),
 						MACAddress: info.mac,
 						Pool:       info.pool,
@@ -242,12 +243,12 @@ func (c *Client) parseNetworkCard(port *ports.Port, ip2pid map[string]string,
 	} else {
 		for _, pair := range port.AllowedAddressPairs {
 			ipSets[pair.IPAddress] = &rpc.VPCIP{
-				IPSet:         &rpc.IPSet{IPv4: pair.IPAddress},
-				PortID:        ip2pid[pair.IPAddress],
-				NetworkCardId: port.ID,
-				Pool:          networkCard.Pool,
-				SubnetId:      networkCard.SubnetId,
-				MACAddress:    networkCard.MAC,
+				IPSet:             &rpc.IPSet{IPv4: pair.IPAddress},
+				PortId:            ip2pid[pair.IPAddress],
+				NetworkCardPortId: port.ID,
+				Pool:              networkCard.Pool,
+				SubnetId:          networkCard.SubnetId,
+				MACAddress:        networkCard.MAC,
 			}
 		}
 	}
@@ -684,7 +685,7 @@ func (c *Client) AssignPrivateIPAddresses(networkCardId, networkCardMacAddr, net
 		IPSet: &rpc.IPSet{
 			IPv4: p.GetIPSet().GetIPv4(),
 		},
-		PortID:   p.GetID(),
+		PortId:   p.GetID(),
 		Pool:     pool,
 		SubnetId: subnetId,
 	}
@@ -770,9 +771,9 @@ func (c *Client) AssignSubPortToTrunk(trunkId string, networkId, subnetId string
 		IPSet: &rpc.IPSet{
 			IPv4: port.GetIPSet().GetIPv4(),
 		},
-		PortID:   port.GetID(),
+		PortId:   port.GetID(),
 		Vid:      int32(vid),
-		TrunkID:  trunk.ID,
+		TrunkId:  trunk.ID,
 		Pool:     pool,
 		SubnetId: subnetId,
 	}
@@ -934,7 +935,7 @@ func (c *Client) TransferPortFromNetworkCardAToAnotherNetworkCardB(NetworkCardA,
 		return err
 	}
 
-	_, err = ports.Update(c.neutronV2, podIP.GetPortID(), ports.UpdateOpts{
+	_, err = ports.Update(c.neutronV2, podIP.GetPortId(), ports.UpdateOpts{
 		DeviceID: &NetworkCardB,
 	}).Extract()
 	if err != nil {

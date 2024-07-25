@@ -56,6 +56,7 @@ type Daemon struct {
 	instanceMetaGetter openstack.InstanceMetadataGetter
 	vpcResourceManager *VPCResourceManager
 	recordStorage      storage.Storage[types.PodRecord]
+	networkStorage     storage.Storage[types.NetworkCard]
 	poolStorage        storage.Storage[types.IPPool]
 	engine             *bolt.BoltEngine
 
@@ -109,7 +110,7 @@ func NewDaemon(ctx context.Context, option *option.DaemonOption) *Daemon {
 	}
 
 	// Initialize the network card storage.
-	networkStorage, err := bolt.NewStorage[types.NetworkCard, types.NetworkCardImpl]("networkCard", d.engine)
+	d.networkStorage, err = bolt.NewStorage[types.NetworkCard, types.NetworkCardImpl]("networkCard", d.engine)
 	if err != nil {
 		log.Fatalf("Create networkcard storage error: %s.", err.Error())
 	}
@@ -125,7 +126,7 @@ func NewDaemon(ctx context.Context, option *option.DaemonOption) *Daemon {
 		d.k8sManager,
 		d.nodeIP,
 		d.nodeName,
-		networkStorage,
+		d.networkStorage,
 		d.poolStorage,
 		option.TrunkSubnetId,
 		func(subnetId string, ipPool types.IPPool) (storage.Storage[types.VPCIP], error) {
@@ -382,4 +383,121 @@ func (d *Daemon) RestoreEndpoint() ([]*types.PodRecord, error) {
 	}
 
 	return podRecords, nil
+}
+
+func (d *Daemon) ListVpcIPs(ctx context.Context, request *rRpc.ListVpcIPsRequest) (*rRpc.ListVpcIPsResponse, error) {
+	vpcIps := []*rRpc.VPCIP{}
+	for _, subnetIps := range d.vpcResourceManager.ipStorageKeeper {
+		for _, ip := range subnetIps.List() {
+			IPSet := ip.Value.GetIPSet()
+			ipPool := ip.Value.GetPool()
+			ipSubId := ip.Value.GetSubnetId()
+			if len(request.SubnetId) > 0 && request.SubnetId != ipSubId {
+				continue
+			}
+			if len(request.Pool) > 0 && request.Pool != ipPool {
+				continue
+			}
+			vpcIp := &rRpc.VPCIP{
+				IPSet: &rRpc.IPSet{
+					IPv4: IPSet.IPv4.String(),
+					IPv6: IPSet.IPv6.String(),
+				},
+				PortId:            ip.Value.GetResourceId(),
+				MACAddress:        ip.Value.GetMacAddress(),
+				Vid:               int32(ip.Value.GetVid()),
+				TrunkId:           ip.Value.GetTrunkId(),
+				NetworkCardPortId: ip.Value.GetNetworkCardId(),
+				SubnetId:          ipSubId,
+				Pool:              ipPool,
+			}
+			vpcIps = append(vpcIps, vpcIp)
+		}
+	}
+	return &rRpc.ListVpcIPsResponse{
+		VPCIPs: vpcIps,
+	}, nil
+}
+
+func (d *Daemon) ListNetworkCards(ctx context.Context, request *rRpc.ListNetworkCardsRequest) (*rRpc.ListNetworkCardsResponse, error) {
+	netCards := []*rRpc.CliNetworkCard{}
+	cards := d.networkStorage.List()
+
+	for _, card := range cards {
+		IPSet := card.Value.GetIPSet()
+		netCard := &rRpc.CliNetworkCard{
+			NetworkCardPortId: card.Value.GetResourceId(),
+			MACAddress:        card.Value.GetMacAddress(),
+			IPSet: &rRpc.IPSet{
+				IPv4: IPSet.IPv4.String(),
+				IPv6: IPSet.IPv6.String(),
+			},
+			SecurityGroups: card.Value.GetSecurityGroups(),
+			SubnetId:       card.Value.GetSubnetId(),
+			NetworkId:      card.Value.GetNetworkId(),
+			TrunkId:        card.Value.GetTrunkId(),
+			IPLimit:        int32(card.Value.GetIPLimit()),
+		}
+		netCards = append(netCards, netCard)
+	}
+	return &rRpc.ListNetworkCardsResponse{
+		CliNetworkCards: netCards,
+	}, nil
+}
+
+func (d *Daemon) getPortIdMapIPs() map[string]*types.IPs {
+	portMapIp := make(map[string]*types.IPs)
+	for _, subnetIps := range d.vpcResourceManager.ipStorageKeeper {
+		for _, ip := range subnetIps.List() {
+			portId := ip.Value.GetResourceId()
+			IPSet := ip.Value.GetIPSet()
+			portMapIp[portId] = &types.IPs{
+				IPSet: &rRpc.IPSet{
+					IPv4: IPSet.IPv4.String(),
+					IPv6: IPSet.IPv6.String(),
+				},
+				MACAddress:        ip.Value.GetMacAddress(),
+				Vid:               int32(ip.Value.GetVid()),
+				TrunkId:           ip.Value.GetTrunkId(),
+				NetworkCardPortId: ip.Value.GetNetworkCardId(),
+			}
+		}
+	}
+	return portMapIp
+}
+
+func (d *Daemon) ListPodRecords(ctx context.Context, request *rRpc.ListPodRecordsRequest) (*rRpc.ListPodRecordsResponse, error) {
+	podRecords := []*rRpc.PodRecord{}
+	records := d.recordStorage.List()
+	portMapIps := d.getPortIdMapIPs()
+	for _, record := range records {
+		if len(request.SubnetId) > 0 && request.SubnetId != record.Value.SubnetId {
+			continue
+		}
+		if len(request.Pool) > 0 && request.Pool != record.Value.Pool {
+			continue
+		}
+		if len(request.Namespace) > 0 && request.Namespace != record.Value.Namespace {
+			continue
+		}
+		portId := record.Value.ResourceId
+		portIps := portMapIps[portId]
+		podRecord := &rRpc.PodRecord{
+			Pool:              record.Value.Pool,
+			PortId:            portId,
+			SubnetId:          record.Value.SubnetId,
+			Name:              record.Value.Name,
+			Namespace:         record.Value.Namespace,
+			Trunk:             record.Value.Trunk,
+			IPSet:             portIps.IPSet,
+			MACAddress:        portIps.MACAddress,
+			Vid:               portIps.Vid,
+			TrunkId:           portIps.TrunkId,
+			NetworkCardPortId: portIps.NetworkCardPortId,
+		}
+		podRecords = append(podRecords, podRecord)
+	}
+	return &rRpc.ListPodRecordsResponse{
+		PodRecords: podRecords,
+	}, nil
 }

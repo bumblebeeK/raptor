@@ -8,12 +8,40 @@ service RaptorBackend {
   rpc CreateEndpoint (CreateEndpointRequest) returns (CreateEndpointResponse) {}
   rpc DeleteEndpoint (DeleteEndpointRequest) returns (DeleteEndpointResponse) {}
   rpc BorrowIP(BorrowIPRequest) returns (BorrowIPResponse){}
+  rpc ListNetworkCards(ListNetworkCardsRequest) returns (ListNetworkCardsResponse) {}
+  rpc ListVpcIPs(ListVpcIPsRequest) returns (ListVpcIPsResponse) {}
+  rpc ListPodRecords(ListPodRecordsRequest) returns (ListPodRecordsResponse) {}
+}
+
+message ListNetworkCardsRequest {}
+
+message ListVpcIPsRequest {
+  string SubnetId = 1;
+  string Pool = 2;
+}
+
+message ListPodRecordsRequest {
+  string SubnetId = 1;
+  string Pool = 2;
+  string Namespace = 3;
+}
+
+message ListNetworkCardsResponse {
+  repeated CliNetworkCard CliNetworkCards = 1;
+}
+
+message ListVpcIPsResponse {
+  repeated VPCIP VPCIPs = 1;
+}
+
+message ListPodRecordsResponse {
+  repeated PodRecord PodRecords = 1;
 }
 
 message BorrowIPRequest {
   string Pool = 1;
   string Endpoint = 2;
-  string NetworkCardID = 3;
+  string NetworkCardPortID = 3;
   string MacAddress = 4;
 }
 

@@ -14,38 +14,26 @@
 package main
 
 import (
-	"encoding/json"
-	"github.com/boltdb/bolt"
-	"github.com/easystack/raptor/pkg/types"
+	"context"
+	"time"
+
+	cmdcommon "github.com/easystack/raptor/cmd/common"
+	"github.com/easystack/raptor/rpc"
 )
 
-var recordBucketName = "record"
-
-func getPodRecordInfo(name string) ([]types.PodRecord, error) {
-	records := []types.PodRecord{}
-
-	err := engine.View(func(tx *bolt.Tx) error {
-
-		if name == "" {
-			bytes := tx.Bucket([]byte(recordBucketName)).Get([]byte(name))
-			card := types.PodRecord{}
-			err := json.Unmarshal(bytes, &card)
-			if err != nil {
-				return err
-			}
-			records = append(records, card)
-			return nil
-		}
-
-		return tx.Bucket([]byte(networkCardBucketName)).ForEach(func(_, v []byte) error {
-			record := types.PodRecord{}
-			err := json.Unmarshal(v, &record)
-			if err != nil {
-				return err
-			}
-			records = append(records, record)
-			return nil
-		})
+func getPodRecordInfo(subnetid string, pool string, namespace string) ([]*rpc.PodRecord, error) {
+	client, conn, err := cmdcommon.GetRaptorClient(context.Background())
+	if err != nil {
+		return nil, err
+	}
+	defer conn.Close()
+	ctx, cancelFunc := context.WithTimeout(context.Background(), time.Second*10)
+	defer cancelFunc()
+	response, err := client.ListPodRecords(ctx, &rpc.ListPodRecordsRequest{
+		SubnetId:  subnetid,
+		Pool:      pool,
+		Namespace: namespace,
 	})
-	return records, err
+
+	return response.PodRecords, err
 }

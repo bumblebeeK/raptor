@@ -29,6 +29,7 @@ import (
 	"github.com/containernetworking/cni/pkg/version"
 	"github.com/containernetworking/plugins/pkg/ip"
 	"github.com/containernetworking/plugins/pkg/ns"
+	cmdcommon "github.com/easystack/raptor/cmd/common"
 	"github.com/easystack/raptor/pkg/base"
 	"github.com/easystack/raptor/pkg/datapath"
 	"github.com/easystack/raptor/pkg/datapath/driver"
@@ -125,7 +126,7 @@ func cmdAdd(args *skel.CmdArgs) error {
 	ctx, cancel := context.WithTimeout(context.Background(), types.DefaultCNITimeout)
 	defer cancel()
 
-	client, conn, err := getRaptorClient(ctx)
+	client, conn, err := cmdcommon.GetRaptorClient(ctx)
 	if err != nil {
 		return fmt.Errorf("create grpc client error: %w", err)
 	}
@@ -215,7 +216,7 @@ func cmdDel(args *skel.CmdArgs) error {
 	ctx, cancel := context.WithTimeout(context.Background(), types.DefaultCNITimeout)
 	defer cancel()
 
-	client, conn, err := getRaptorClient(ctx)
+	client, conn, err := cmdcommon.GetRaptorClient(ctx)
 	if err != nil {
 		return fmt.Errorf("error create grpc client, %w", err)
 	}

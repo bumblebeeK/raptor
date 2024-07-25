@@ -340,7 +340,7 @@ func (c *Server) AllocateIPResource(ctx context.Context, in *rpc.AllocateIPResou
 	if in.GetTrunkId() != "" {
 		vpcIP, err = c.openstackClient.AssignSubPortToTrunk(in.GetTrunkId(), subnet.NetworkID, in.GetSubnetId(), in.GetPool(), in.GetResourceId())
 	} else {
-		vpcIP, err = c.openstackClient.AssignPrivateIPAddresses(in.GetNetworkCardId(), in.GetNetworkCardMacAddress(), subnet.NetworkID, in.GetSubnetId(), in.GetPool(), in.GetResourceId())
+		vpcIP, err = c.openstackClient.AssignPrivateIPAddresses(in.GetNetworkCardPortId(), in.GetNetworkCardMacAddress(), subnet.NetworkID, in.GetSubnetId(), in.GetPool(), in.GetResourceId())
 	}
 	c.judgeOpenstackServerReady(err)
 	if err != nil {
@@ -359,7 +359,7 @@ func (c *Server) ReleaseIPResource(ctx context.Context, in *rpc.ReleaseIPResourc
 		log.Infof("Unassign sub port for trunk %s", in.GetTrunkId())
 		err = c.openstackClient.UnAssignSubPortForTrunk(in.GetResourceId(), in.GetTrunkId(), in.GetDeleteResource())
 	} else if in.GetIPSet() != nil {
-		err = c.openstackClient.UnAssignPrivateIPAddress(in.GetIPSet(), in.GetMacAddress(), in.GetNetworkCardId(), in.GetResourceId(), in.GetDeleteResource())
+		err = c.openstackClient.UnAssignPrivateIPAddress(in.GetIPSet(), in.GetMacAddress(), in.GetNetworkCardPortId(), in.GetResourceId(), in.GetDeleteResource())
 	} else {
 		return &rpc.ReleasePodIPReply{}, status.Error(codes.InvalidArgument, "invalid resource type")
 	}
@@ -398,7 +398,7 @@ func (c *Server) AllocateNetworkCard(ctx context.Context, in *rpc.AllocateNetwor
 
 // ReleaseNetworkCard accept release eni requests from coordinator clients
 func (c *Server) ReleaseNetworkCard(ctx context.Context, in *rpc.ReleaseNetworkCardRequest) (*rpc.ReleaseNetworkCardReply, error) {
-	err := c.openstackClient.DeleteNetworkInterface(in.GetNetworkCardId())
+	err := c.openstackClient.DeleteNetworkInterface(in.GetNetworkCardPortId())
 	c.judgeOpenstackServerReady(err)
 	if err != nil {
 		return &rpc.ReleaseNetworkCardReply{}, status.Error(codes.Internal, fmt.Sprintf("failed to relase eni, error is %s", err))

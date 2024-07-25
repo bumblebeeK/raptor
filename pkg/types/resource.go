@@ -33,6 +33,10 @@ type NetworkCard interface {
 	GetMacAddress() string
 
 	GetIPSet() IPSet
+
+	GetSecurityGroups() []string
+
+	GetIPLimit() int
 }
 
 // NetworkCardImpl is a concrete implementation of the NetworkCard interface, containing various properties of a network card.
@@ -50,6 +54,14 @@ type NetworkCardImpl struct {
 // ResourceId returns the resource ID of the network card.
 func (n NetworkCardImpl) GetResourceId() string {
 	return n.ResourceId
+}
+
+func (n NetworkCardImpl) GetIPLimit() int {
+	return n.IPLimit
+}
+
+func (n NetworkCardImpl) GetSecurityGroups() []string {
+	return n.SecurityGroups
 }
 
 // GetNetworkCardId returns the network card ID.
@@ -183,7 +195,7 @@ func (v VPCIPImpl) GetNetworkCardMacAddr() string {
 // TranslateVPCIP converts an rpc.PodIP object to a VPCIP interface.
 func TranslateVPCIP(vpcIP *rpc.VPCIP, card NetworkCard) VPCIP {
 	return &VPCIPImpl{
-		ResourceId: vpcIP.GetPortID(),
+		ResourceId: vpcIP.GetPortId(),
 		IPSet: IPSet{
 			IPv4: net.ParseIP(vpcIP.GetIPSet().GetIPv4()),
 			IPv6: net.ParseIP(vpcIP.GetIPSet().GetIPv6()),
