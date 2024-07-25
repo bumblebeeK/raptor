@@ -1,0 +1,158 @@
+syntax = "proto3";
+
+package rpc;
+option go_package = "./;rpc";
+
+
+service CoordinatorBackend {
+  rpc AcquireInstanceInfo (AcquireInstanceInfoRequest) returns (AcquireInstanceInfoReply) {}
+
+  rpc AllocateIPResource(AllocateIPResourceRequest)  returns (AllocateIPResourceReply) {}
+
+  rpc ReleaseIPResource(ReleaseIPResourceRequest) returns (ReleasePodIPReply) {}
+
+  rpc AllocateNetworkCard(AllocateNetworkCardRequest) returns (AllocateNetworkCardReply) {}
+
+  rpc ReleaseNetworkCard(ReleaseNetworkCardRequest) returns (ReleaseNetworkCardReply) {}
+
+  rpc TransferIPResource(TransferIPResourceRequest) returns (TransferIPResourceReply) {}
+
+  rpc AcquireServerStress(AcquireServerStressRequest ) returns (AcquireServerStressReply) {}
+}
+
+message AcquireServerStressRequest {}
+message AcquireServerStressReply {
+  bool ApiReady = 2;
+  int64 RequestAfter = 3;
+
+}
+
+message TransferIPResourceRequest {
+  VPCIP VPCIP = 1;
+  string FromNetworkCard = 2;
+  string ToNetworkCard = 3;
+  string MacAddress = 4;
+}
+
+message TransferIPResourceReply {
+}
+
+
+message AcquireInstanceInfoRequest {
+  string NodeIP = 1;
+}
+
+message AcquireInstanceInfoReply {
+  Instance Instance = 2;
+}
+
+message AllocateIPResourceRequest {
+  string Pool = 2;
+  string TrunkId = 3;
+  string NetworkCardId = 4;
+  string NetworkId = 5;
+  string SubnetId = 6;
+  string NetworkCardMacAddress = 7;
+  string ResourceId = 8;
+}
+
+message AllocateIPResourceReply {
+  VPCIP VPCIP = 1;
+}
+
+message ReleaseIPResourceRequest {
+   string ResourceId = 1;
+   string NetworkCardId = 2;
+   string TrunkId = 3;
+   uint32 Vid = 4;
+   string MacAddress = 5;
+   IPSet IPSet = 6;
+   bool DeleteResource = 7;
+}
+
+message ReleasePodIPReply {
+}
+
+message AllocateNetworkCardRequest {
+  string InstanceId = 1;
+  string SubnetId = 3;
+  bool Trunk = 4;
+}
+
+message AllocateNetworkCardReply {
+  NetworkCard NetworkCard = 2;
+}
+
+message ReleaseNetworkCardRequest {
+  string NetworkCardId = 1;
+}
+
+message ReleaseNetworkCardReply {
+}
+
+
+
+message NetworkCard {
+  string ID = 1;
+  IPSet IPSet = 2;
+  string MAC = 3;
+  repeated string SecurityGroups = 4;
+  VPC VPC = 5;
+  string  SubnetId = 6;
+  string NetworkId = 7;
+  map<string, VPCIP> VPCIPs = 8;
+  repeated string Tags = 9;
+  string Pool = 10;
+  int32 IPLimit = 11;
+  int32 RuleTable = 12;
+  bool  IsTrunk = 13;
+  string TrunkID = 14;
+  int32 Index = 15;
+  IPSet CIDR = 16;
+}
+
+message Instance {
+  string InstanceId = 1;
+  map<string, NetworkCard> NetworkCards = 2;
+}
+
+message VPC {
+    string ID = 1;
+}
+
+message Subnet {
+  string ID = 1;
+  string NetworkID = 2;
+  IPSet CIDR = 3;
+  IPSet GatewayIP = 4;
+  int64 AllocationCount = 5;
+  int64 AllocatedCount = 6;
+  string Name = 7;
+  bool IsDefault = 8;
+  string Pool = 9;
+}
+
+// IPSet declare a string set contain v4 v6 info
+message IPSet {
+  string IPv4 = 1;
+  string IPv6 = 2;
+}
+
+message IPPool {
+  string PoolName = 1;
+  string NetworkID = 2;
+  string SubnetID = 3;
+}
+
+message VPCIP {
+  IPSet IPSet = 1;
+  string PortID = 2;
+  string MACAddress = 3;
+  int32  Vid = 4;
+  string TrunkID = 5;
+  string NetworkCardId = 6;
+  string SubnetId = 7;
+  string Pool = 8;
+}
+
+

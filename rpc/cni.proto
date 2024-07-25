@@ -1,0 +1,118 @@
+syntax = "proto3";
+package rpc;
+option go_package = "./;rpc";
+
+import "rpc/raptor.proto";
+
+service RaptorBackend {
+  rpc CreateEndpoint (CreateEndpointRequest) returns (CreateEndpointResponse) {}
+  rpc DeleteEndpoint (DeleteEndpointRequest) returns (DeleteEndpointResponse) {}
+  rpc BorrowIP(BorrowIPRequest) returns (BorrowIPResponse){}
+}
+
+message BorrowIPRequest {
+  string Pool = 1;
+  string Endpoint = 2;
+  string NetworkCardID = 3;
+  string MacAddress = 4;
+}
+
+message BorrowIPResponse {
+  VPCIP VPCIP = 2;
+}
+
+message CreateEndpointRequest {
+  string K8sPodName = 1;
+  string K8sPodNamespace = 2;
+  string K8sPodInfraContainerId = 3;
+  string Netns = 4;
+  string IfName = 5;
+}
+
+message NetConf {
+  BasicInfo BasicInfo = 1;
+  ENIInfo ENIInfo = 2;
+  string IfName = 4;
+  bool DefaultRoute = 6;
+}
+
+message CreateEndpointResponse {
+  IPSet IPSet = 1;
+  string MacAddress = 2;
+  uint32 Vid = 3; // vlan ID
+  IPSet GatewayIP = 4;
+  string NetworkCardMacAddr = 5;
+  IPSet CIDR = 6;
+  int64 MTU = 7;
+  string DataPath = 8;
+}
+
+message BasicInfo {
+  IPSet PodIP = 1;
+  IPSet PodCIDR = 2; // subnet for pod, value form vSwitch CIDR or podCIDR
+  IPSet GatewayIP = 3; // gw for the subnet
+  IPSet ServiceCIDR = 4;
+  string NetworkCardMacAddress = 6;
+  int32 Vid = 7;
+  string Mac = 8;
+}
+
+message ENIInfo {
+  string MAC = 1;
+  bool Trunk = 2; // eni is trunk
+  uint32 Vid = 3; // vlan ID
+  IPSet GatewayIP = 4;
+}
+
+message Route {
+  string Dst = 1;
+}
+
+enum IPType {
+  TypeVPCTrunkIP = 0;
+  TypeVPCENI = 1;
+  TypeENIMultiIP = 2;
+}
+
+// VETH Basic
+message Pod {
+  uint64 Ingress = 1;
+  uint64 Egress = 2;
+  string NetworkPriority = 3;
+}
+
+message DeleteEndpointRequest {
+  string K8sPodName = 1;
+  string K8sPodNamespace = 2;
+  string K8sPodInfraContainerId = 3;
+  IPType IPType = 4;
+  IPSet IPv4Addr = 5;
+  string MacAddr = 6;
+  string Reason = 7;
+}
+
+message DeleteEndpointResponse {
+  bool TrunkMode = 1;
+}
+
+message GetInfoRequest {
+  string K8sPodName = 1;
+  string K8sPodNamespace = 2;
+  string K8sPodInfraContainerId = 3;
+}
+
+message GetInfoReply {
+  IPType   IPType = 1;
+  bool Success = 2;
+  bool IPv4 = 3;
+  bool IPv6 = 4;
+  repeated NetConf NetConfs = 5;
+  bool EnableTrunking = 6;
+  Error Error = 7;
+}
+
+enum Error {
+  ErrNoErr = 0;
+  ErrCRDNotFound = 1;
+}
+

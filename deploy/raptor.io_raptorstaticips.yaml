@@ -1,0 +1,90 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.14.0
+  name: raptorstaticips.raptor.io
+spec:
+  group: raptor.io
+  names:
+    categories:
+      - rsip
+    kind: RaptorStaticIP
+    listKind: RaptorStaticIPList
+    plural: raptorstaticips
+    shortNames:
+      - rsip
+    singular: participator
+  scope: Namespaced
+  versions:
+    - additionalPrinterColumns:
+        - description: Raptor scheduler on which node
+          jsonPath: .spec.ipv4
+          name: IPV4
+          type: string
+        - description: Node for rsip
+          jsonPath: .spec.node-name
+          name: Node
+          type: string
+        - description: Time duration since creation of raptorstaticip
+          jsonPath: .metadata.creationTimestamp
+          name: Age
+          type: date
+      name: v1beta1
+      schema:
+        openAPIV3Schema:
+          description: RaptorStaticIP defines
+          properties:
+            apiVersion:
+              description: |-
+                APIVersion defines the versioned schema of this representation of an object.
+                Servers should convert recognized schemas to the latest internal value, and
+                may reject unrecognized values.
+                More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+              type: string
+            kind:
+              description: |-
+                Kind is a string value representing the REST resource this object represents.
+                Servers may infer this from the endpoint the client submits requests to.
+                Cannot be updated.
+                In CamelCase.
+                More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+              type: string
+            metadata:
+              type: object
+            spec:
+              properties:
+                ipv4:
+                  type: string
+                ipv6:
+                  type: string
+                network-id:
+                  type: string
+                node-name:
+                  type: string
+                pool:
+                  type: string
+                recycle-time:
+                  type: integer
+                resource-id:
+                  type: string
+              required:
+                - ipv4
+                - pool
+              type: object
+            status:
+              properties:
+                phase:
+                  type: string
+                update-time:
+                  format: date-time
+                  type: string
+              type: object
+          required:
+            - spec
+          type: object
+      served: true
+      storage: true
+      subresources:
+        status: {}
